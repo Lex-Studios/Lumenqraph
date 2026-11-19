@@ -495,6 +495,35 @@ jobs:
           done <<< "$refs"
           exit $status
 
+  # Issue #640: dead links in SECURITY.md and fly.toml went unnoticed. Check
+  # every Markdown link, and every docs/ path that config comments refer to.
+  # External URLs are not fetched (--offline), so the check is deterministic
+  # and does not fail on third-party outages.
+  link-check:
+    name: Link Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check Markdown links (offline)
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --verbose --exclude-path node_modules --exclude-path target './**/*.md'
+          fail: true
+      - name: Check doc paths referenced from config comments
+        run: |
+          status=0
+          for f in fly.toml render.yaml docker-compose.yml docker-compose.full.yml; do
+            [ -f "$f" ] || continue
+            for p in $(grep -ohE 'docs/[A-Za-z0-9_./-]+\.md' "$f" | sort -u); do
+              if [ ! -f "$p" ]; then
+                echo "::error file=$f::refers to missing file $p"
+                status=1
+              fi
+            done
+          done
+          exit $status
+
   # Issue #538: the explorer has lint, build and Playwright smoke tests that
   # were never run in CI. Run them here so regressions (including XSS-relevant
   # rendering changes) fail before merge.
