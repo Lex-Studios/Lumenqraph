@@ -48,6 +48,7 @@ export const styles = `
   .brand h1 { margin: 0; font-size: 1.4rem; letter-spacing: -.01em; }
   .brand .tag { color: var(--muted); font-size: .82rem; }
   .conn { display: flex; flex-wrap: wrap; gap: .4rem; margin-left: auto; }
+  .conn .remember { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; color: var(--muted); }
   input, button, select {
     font: inherit; padding: .42rem .6rem; border-radius: 8px;
     border: 1px solid var(--border); background: var(--bg); color: inherit;

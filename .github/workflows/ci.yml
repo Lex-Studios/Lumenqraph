@@ -505,7 +505,8 @@ jobs:
       - name: Verify build leaves index.html unchanged
         run: git diff --exit-code -- index.html
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        # playwright.config.ts runs every browser project, so install them all.
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Test (Playwright smoke)
         run: npm test
 

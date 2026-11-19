@@ -85,9 +85,68 @@ function baseChanged(): void {
   connect();
 }
 
+// --- API key storage (issue #638) -------------------------------------------
+// The API key is never persisted by default. It is kept in sessionStorage (gone
+// when the tab closes). It is written to localStorage only when the user
+// explicitly ticks "Remember on this device".
+const SESSION_KEY = 'lq.key';                // sessionStorage: this tab's key
+const REMEMBERED_KEY = 'lq.key.remembered';  // localStorage: key, only if opted in
+const REMEMBER_FLAG = 'lq.key.remember';     // localStorage: '1' when opted in
+
+function restoreKey(): void {
+  const keyInput = $<HTMLInputElement>('key');
+  const rememberInput = $<HTMLInputElement>('rememberKey');
+  let value = '';
+  try {
+    // Older builds kept the key in localStorage for every user. Drop that copy;
+    // users who want it kept must opt in again.
+    localStorage.removeItem('lq.key');
+    const opted = localStorage.getItem(REMEMBER_FLAG) === '1';
+    rememberInput.checked = opted;
+    value = (opted ? localStorage.getItem(REMEMBERED_KEY) : null)
+      ?? sessionStorage.getItem(SESSION_KEY)
+      ?? '';
+  } catch {
+    // Storage unavailable (e.g. blocked site data): start with an empty key.
+  }
+  keyInput.value = value;
+}
+
+function saveKey(): void {
+  const value = ($<HTMLInputElement>('key')).value;
+  const remember = ($<HTMLInputElement>('rememberKey')).checked;
+  try {
+    if (value) sessionStorage.setItem(SESSION_KEY, value);
+    else sessionStorage.removeItem(SESSION_KEY);
+
+    if (remember) {
+      localStorage.setItem(REMEMBER_FLAG, '1');
+      if (value) localStorage.setItem(REMEMBERED_KEY, value);
+      else localStorage.removeItem(REMEMBERED_KEY);
+    } else {
+      localStorage.removeItem(REMEMBER_FLAG);
+      localStorage.removeItem(REMEMBERED_KEY);
+    }
+  } catch {
+    // Storage unavailable: the key still works for this page load.
+  }
+}
+
+function rememberChanged(): void {
+  saveKey();
+}
+
+function forgetKey(): void {
+  ($<HTMLInputElement>('key')).value = '';
+  ($<HTMLInputElement>('rememberKey')).checked = false;
+  saveKey();
+  ui.toast('API key forgotten');
+  connect();
+}
+
 function connect(): void {
   localStorage.setItem('lq.base', api.getBase());
-  localStorage.setItem('lq.key', ($<HTMLInputElement>('key')).value);
+  saveKey();
   loadHealth();
   loadContracts();
   if (healthTimer) clearInterval(healthTimer);
@@ -161,11 +220,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Restore previous settings
   ($<HTMLInputElement>('base')).value = localStorage.getItem('lq.base') ?? '';
-  ($<HTMLInputElement>('key')).value = localStorage.getItem('lq.key') ?? '';
+  restoreKey();
 
   // Set up event listeners
   ($<HTMLInputElement>('base')).addEventListener('change', baseChanged);
   ($<HTMLInputElement>('key')).addEventListener('change', connect);
+  ($<HTMLInputElement>('rememberKey')).addEventListener('change', rememberChanged);
+  ($<HTMLButtonElement>('forgetKey')).addEventListener('click', forgetKey);
   ($<HTMLSelectElement>('senet')).addEventListener('change', netChanged);
 
   // Set up custom events
