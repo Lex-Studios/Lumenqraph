@@ -121,7 +121,6 @@ jobs:
             echo "::error::No migrations were recorded on the fresh database."
             exit 1
           fi
-=======
 
   # Issue #475: lint new or changed migrations with squawk so table-locking
   # DDL (non-concurrent index builds, constraints without NOT VALID, column
