@@ -364,6 +364,23 @@ jobs:
         run: |
           python3 scripts/check_openapi_drift.py openapi.yaml /tmp/generated-openapi.json
 
+  # Issue #639: every environment variable read by runtime Rust code must be
+  # documented in docs/CONFIGURATION.md, so operators can find security-relevant
+  # settings and defaults.
+  config-docs:
+    name: Config Reference Drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Check every runtime env var is documented
+        run: python3 scripts/check_config_docs.py
+
   # Issue #357: build and validate the Python SDK so it stays installable.
   # `python -m build` produces an sdist and a wheel from sdk/python, and
   # `twine check` verifies the package metadata (including the LICENSE file
